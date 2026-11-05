@@ -1,42 +1,53 @@
 # feed
 
-集中维护订阅转换器，将没有可用 RSS 的公开内容转换为标准订阅源。
+Feed converters for public sources that do not provide usable RSS feeds.
 
-每个来源使用独立转换器。GitHub Actions 定时抓取和生成 RSS，再通过 GitHub Pages 发布固定订阅地址。
+Each source has its own converter. GitHub Actions fetches public content on a schedule, generates RSS, and publishes it through GitHub Pages at a stable URL.
 
-## 公开内容边界
+## Public content only
 
-**本仓库 `mxzel/feed` 是公开仓库。代码、提交历史、状态文件、Actions 日志和 Pages 文件均按公开内容处理。**
+**`mxzel/feed` is a public repository. Treat its code, commit history, state files, Actions logs, and Pages output as public.**
 
-仅存放公开来源的转换代码和必要的公开元数据。禁止上传密钥、令牌、Cookie、账户导出、私人订阅、阅读记录、个人画像、私人笔记和内部资料。不得从其他项目整目录复制配置、数据或运行日志。
+Store only converter code and the public metadata required to build feeds. Never upload credentials, tokens, cookies, account exports, private subscriptions, reading history, personal profiles, private notes, or internal material. Do not copy configuration, data directories, or runtime logs wholesale from other projects.
 
-## 订阅地址
+## Feeds
 
 - [HackerTube RSS](https://mxzel.github.io/feed/hackertube.xml)
-- [订阅源首页](https://mxzel.github.io/feed/)
+- [Feed index](https://mxzel.github.io/feed/)
 
-HackerTube 转换器保留视频简介、HN 推荐理由、频道、时长、难度和主题。
-简介和推荐理由来自站方整理，不是视频全文或字幕。
-首页推荐包含旧视频；RSS 日期采用首次发现时间，原始发布时间列在正文中。
-视频 ID 用于去重。状态文件保留所有已发现视频，RSS 提供最近发现的 200 条。
+The HackerTube converter preserves each video's summary, HN recommendation rationale, channel, duration, level, and topic.
+The source provides the summaries and recommendation rationale. They are not full transcripts.
+Recommendations include older videos. RSS publication dates use the time this converter first discovered a video; the original publication date appears in the item body.
+Video IDs identify entries. The RSS feed contains the 200 most recently discovered videos.
 
-## 自动更新与发布
+## Persistent state
 
-工作流 `.github/workflows/publish.yml` 每天 UTC 00:17（北京时间 08:17）运行。
-修改转换脚本或工作流也会触发运行，可在 Actions 页面手动执行「更新订阅并发布」。
+`data/hackertube.json` stores previously discovered video IDs, their first discovery timestamps, and the public metadata needed to rebuild the feed.
+Each Actions run starts in a fresh environment. Committing this state lets later runs recognize existing videos and preserve their dates.
+The state retains older recommendations even when they disappear from the current API response. Only the latest 200 discoveries appear in RSS.
+The converter copies an explicit list of public fields. This file contains no account data, private subscriptions, or reading history.
 
-1. 运行离线测试。
-2. 从公开 API 生成 RSS。
-3. 将公开视频状态提交到 `data/hackertube.json`。
-4. 仅上传 `public/`，再发布到 GitHub Pages。
+## Updates and publishing
 
-API 请求失败或格式校验失败时，本轮不会发布，线上保留上次成功的版本。
-GitHub 定时任务允许延迟；公开仓库连续 60 天无活动时，GitHub 会停用定时任务。
-默认工作流令牌保持只读；保存状态和发布任务分别声明所需权限。
+`.github/workflows/publish.yml` runs daily at 00:17 UTC (08:17 UTC+8).
+Changes to converters or the workflow also trigger a run. To start one manually, select **Update feeds and publish** in the Actions tab, or run:
 
-## 本地运行
+```sh
+gh workflow run publish.yml -R mxzel/feed
+```
 
-仅需 Python 3.10+ 标准库，无第三方依赖。
+1. Run offline tests.
+2. Build RSS from the public API.
+3. Commit public video state to `data/hackertube.json`.
+4. Upload only `public/` and deploy it to GitHub Pages.
+
+If an API request or response validation fails, publishing stops and the previous site remains available.
+Scheduled runs may be delayed. GitHub disables scheduled workflows in public repositories after 60 days without repository activity.
+The default workflow token is read-only. The state update and deployment jobs request their required permissions separately.
+
+## Local usage
+
+Requires Python 3.10+ and its standard library. No third-party dependencies are required.
 
 ```sh
 python3 -m unittest discover -s tests -v
@@ -47,4 +58,4 @@ python3 scripts/hackertube.py \
   --output-dir public
 ```
 
-`public/` 是生成目录，不提交到代码仓库。新增转换器时，复用工作流并只把发布文件写入此目录。
+`public/` contains generated files and is not committed. When adding a converter, reuse the workflow and write only publishable files to this directory.

@@ -72,7 +72,7 @@ def render_rss(videos: list[Video], feed_url: str) -> bytes:
     for tag, value in (
         ("title", "HackerTube"),
         ("link", "https://hackertube.org/"),
-        ("description", "HackerTube 视频发现：简介、HN 推荐理由和公开元数据。"),
+        ("description", "HackerTube video discoveries: summaries, HN recommendations, and public metadata."),
     ):
         ET.SubElement(channel, tag).text = value
     ET.SubElement(channel, f"{{{ATOM}}}link", href=feed_url, rel="self", type="application/rss+xml")
@@ -85,14 +85,14 @@ def render_rss(videos: list[Video], feed_url: str) -> bytes:
         ET.SubElement(item, "pubDate").text = format_datetime(discovered, usegmt=True)
         paragraphs = []
         for label, field in (
-            ("简介", "summary"), ("HN 推荐理由", "why_hn"), ("频道", "channel"),
-            ("原始发布时间", "published"), ("时长（秒）", "duration_s"),
-            ("内容类型", "content_type"), ("难度", "level"),
-            ("时效类型", "shelf_life"), ("主题", "primary_topic"),
+            ("Summary", "summary"), ("Why HN recommends it", "why_hn"), ("Channel", "channel"),
+            ("Original publication date", "published"), ("Duration (seconds)", "duration_s"),
+            ("Content type", "content_type"), ("Level", "level"),
+            ("Shelf life", "shelf_life"), ("Topic", "primary_topic"),
         ):
             if video.get(field):
                 escaped = html.escape(str(video[field])).replace("\n", "<br>")
-                paragraphs.append(f"<p><strong>{label}</strong>：{escaped}</p>")
+                paragraphs.append(f"<p><strong>{label}</strong>: {escaped}</p>")
         ET.SubElement(item, "description").text = "\n".join(paragraphs)
     ET.indent(root)
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
@@ -117,9 +117,9 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     (args.output_dir / "hackertube.xml").write_bytes(rss)
     (args.output_dir / "index.html").write_text(
-        '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>feed</title>'
-        '<h1>公开订阅源</h1><p><a href="hackertube.xml">HackerTube RSS</a></p>'
-        '<p><a href="https://github.com/mxzel/feed">源码与说明</a></p></html>\n',
+        '<!doctype html><html lang="en"><meta charset="utf-8"><title>feed</title>'
+        '<h1>Public feeds</h1><p><a href="hackertube.xml">HackerTube RSS</a></p>'
+        '<p><a href="https://github.com/mxzel/feed">Source and documentation</a></p></html>\n',
         encoding="utf-8",
     )
     print(f"Built RSS: {min(len(videos), 200)} entries; {len(videos)} known video IDs")

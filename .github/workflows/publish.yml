@@ -1,4 +1,4 @@
-name: 更新订阅并发布
+name: Update feeds and publish
 
 on:
   schedule:
@@ -32,16 +32,16 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - name: 检查转换逻辑
+      - name: Test converters
         run: python -m unittest discover -s tests -v
-      - name: 生成订阅
+      - name: Build feeds
         run: >-
           python scripts/hackertube.py
           --api-url https://hackertube.org/api/feed
           --feed-url https://mxzel.github.io/feed/hackertube.xml
           --state data/hackertube.json
           --output-dir public
-      - name: 保存公开视频状态
+      - name: Save public video state
         run: |
           git add data/hackertube.json
           if ! git diff --cached --quiet; then
@@ -66,6 +66,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/configure-pages@v5
-      - name: 发布订阅
+      - name: Publish feeds
         id: deployment
         uses: actions/deploy-pages@v4
