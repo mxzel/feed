@@ -1,0 +1,71 @@
+name: 更新订阅并发布
+
+on:
+  schedule:
+    - cron: '17 0 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish.yml'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'README.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: feed-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: 检查转换逻辑
+        run: python -m unittest discover -s tests -v
+      - name: 生成订阅
+        run: >-
+          python scripts/hackertube.py
+          --api-url https://hackertube.org/api/feed
+          --feed-url https://mxzel.github.io/feed/hackertube.xml
+          --state data/hackertube.json
+          --output-dir public
+      - name: 保存公开视频状态
+        run: |
+          git add data/hackertube.json
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m ':hammer: chore: update public feed state'
+            git push origin HEAD:main
+          fi
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: 发布订阅
+        id: deployment
+        uses: actions/deploy-pages@v4
