@@ -37,10 +37,11 @@ jobs:
       - name: Build feeds
         run: >-
           python scripts/hackertube.py
-          --api-url https://hackertube.org/api/feed
+          --api-base https://hackertube.org/api
           --feed-url https://mxzel.github.io/feed/hackertube.xml
           --state data/hackertube.json
           --output-dir public
+          --daily-limit 5
       - name: Save public video state
         run: |
           git add data/hackertube.json
